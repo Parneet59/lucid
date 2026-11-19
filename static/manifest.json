@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Lucid",
+  "version": "0.1.0",
+  "description": "A calmer way to read the web.",
+  "action": {
+    "default_title": "Lucid",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "commands": {
+    "toggle-reader": {
+      "suggested_key": { "default": "Alt+Shift+R" },
+      "description": "Open or close the Lucid reader"
+    }
+  }
+}
