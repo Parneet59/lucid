@@ -28,12 +28,13 @@ const options = {
     content: 'src/content/entry.ts',
     auto: 'src/content/auto.ts',
     popup: 'src/popup/index.ts',
+    options: 'src/options/index.ts',
   },
   outdir: 'dist',
   bundle: true,
   format: 'iife',
   target: 'chrome114',
-  sourcemap: 'inline',
+  sourcemap: 'linked',
   logLevel: 'info',
 };
 

@@ -82,6 +82,24 @@ export const READER_CSS = `
 }
 .lucid-toast button { font: inherit; cursor: pointer; }
 
+/* Explain selection */
+.lucid-explain-btn {
+  position: fixed; z-index: 5; font: 13px system-ui, sans-serif; padding: 5px 12px; cursor: pointer;
+  background: var(--fg); color: var(--bg); border: 0; box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+.lucid-explain-btn[hidden] { display: none; }
+.lucid-explain-card {
+  position: fixed; z-index: 5; max-height: 50vh; overflow-y: auto; box-sizing: border-box; padding: 10px 14px 14px;
+  background: var(--bg); color: var(--fg); border: 1px solid var(--line); box-shadow: 0 8px 28px rgba(0,0,0,.22);
+  font: 14px/1.5 system-ui, sans-serif;
+}
+.lucid-explain-head { display: flex; justify-content: space-between; align-items: center; }
+.lucid-explain-head button { all: unset; cursor: pointer; font-size: 18px; padding: 0 4px; }
+.lucid-explain-quote { margin: 6px 0 10px; padding-left: 8px; border-left: 3px solid var(--line); color: var(--muted); font-style: italic; }
+.lucid-explain-text { white-space: pre-wrap; }
+.lucid-muted { color: var(--muted); }
+.lucid-error { color: #b00020; }
+
 /* Word anchors: wrapped once, styled only while on. */
 .lucid-anchor { font-weight: inherit; }
 .lucid-anchors-on .lucid-anchor { font-weight: 700; }

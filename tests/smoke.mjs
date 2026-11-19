@@ -254,6 +254,67 @@ try {
   const fresh = await shadow(() => document.getElementById('lucid-reader-host').shadowRoot.querySelector('.lucid-scroller').scrollTop);
   check(fresh < 5, `"Start from the top" forgets the position (${fresh})`);
 
+  // --- Part 5: explain selection (API mocked) ---
+  const selectAndExplain = async () => {
+    await shadow(() => {
+      const root = document.getElementById('lucid-reader-host').shadowRoot;
+      root.querySelector('.lucid-toast')?.remove();
+      const p = root.querySelectorAll('.lucid-body p')[1];
+      p.scrollIntoView();
+      const text = p.firstChild;
+      const range = document.createRange();
+      range.setStart(text, 13); range.setEnd(text, 40);
+      const sel = root.getSelection();
+      sel.removeAllRanges(); sel.addRange(range);
+      p.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    });
+    await page.waitForTimeout(100);
+    const btnVisible = await shadow(() => !document.getElementById('lucid-reader-host').shadowRoot.querySelector('.lucid-explain-btn').hidden);
+    await page.keyboard.press('e');
+    await page.waitForTimeout(800);
+    return { btnVisible, card: await shadow(() => document.getElementById('lucid-reader-host').shadowRoot.querySelector('.lucid-explain-card')?.textContent ?? null) };
+  };
+
+  const noKey = await selectAndExplain();
+  check(noKey.btnVisible, 'selecting text shows the Explain button');
+  check(/Add your API key/.test(noKey.card ?? '') && /Open options/.test(noKey.card), `no key: explains how to add one (${noKey.card})`);
+  await page.keyboard.press('Escape');
+  const stillOpen = await page.$('#lucid-reader-host');
+  check(!!stillOpen, 'Esc closes the explain card before the reader');
+
+  let apiRequest = null;
+  await ctx.route('https://api.anthropic.com/**', async (route) => {
+    apiRequest = { url: route.request().url(), headers: await route.request().allHeaders(), body: route.request().postDataJSON() };
+    const ev = (type, data) => `event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`;
+    const body = [
+      ev('message_start', { message: { id: 'msg_1', type: 'message', role: 'assistant', model: 'claude-opus-5-5', content: [], stop_reason: null, usage: { input_tokens: 10, output_tokens: 0 } } }),
+      ev('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }),
+      ev('content_block_delta', { index: 0, delta: { type: 'text_delta', text: 'It means the web ' } }),
+      ev('content_block_delta', { index: 0, delta: { type: 'text_delta', text: 'is noisy.' } }),
+      ev('content_block_stop', { index: 0 }),
+      ev('message_delta', { delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 6 } }),
+      ev('message_stop', {}),
+    ].join('');
+    await route.fulfill({ status: 200, headers: { 'content-type': 'text/event-stream' }, body });
+  });
+  await sw.evaluate(() => chrome.storage.local.set({ explain: { provider: 'anthropic', apiKey: 'sk-ant-test', model: 'claude-opus-5-5' } }));
+  const withKey = await selectAndExplain();
+  check(/It means the web is noisy\./.test(withKey.card ?? ''), `streams the explanation into the card (${withKey.card})`);
+  check((apiRequest?.headers['x-api-key'] === 'sk-ant-test' || apiRequest?.headers.authorization === 'Bearer sk-ant-test') && apiRequest.body.model === 'claude-opus-5-5', 'calls Anthropic with the saved key and model');
+  check(/web is full of distractions/.test(apiRequest?.body.messages[0].content ?? '') && /<selection>/.test(apiRequest.body.messages[0].content), 'sends the selection with its paragraph as context');
+  await page.screenshot({ path: 'test-results/reader-explain.png' });
+  await page.keyboard.press('Escape');
+
+  // Options page loads.
+  const opts = await ctx.newPage();
+  const optErrors = [];
+  opts.on('pageerror', (e) => optErrors.push(e.message));
+  await opts.goto(`chrome-extension://${new URL(sw.url()).host}/options.html`);
+  await opts.waitForTimeout(300);
+  const optKey = await opts.inputValue('#key');
+  check(optErrors.length === 0 && optKey === 'sk-ant-test', `options page shows the saved key (${optErrors.join('; ')})`);
+  await opts.close();
+
   // Popup renders without errors.
   const popup = await ctx.newPage();
   const errors = [];

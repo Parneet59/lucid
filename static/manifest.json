@@ -11,6 +11,8 @@
     "service_worker": "background.js"
   },
   "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["https://api.anthropic.com/*"],
+  "options_page": "options.html",
   "optional_host_permissions": ["*://*/*"],
   "web_accessible_resources": [
     { "resources": ["fonts/*"], "matches": ["<all_urls>"] }
