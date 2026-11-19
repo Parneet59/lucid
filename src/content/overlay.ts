@@ -63,7 +63,13 @@ export async function openOverlay(article: Article, presetId?: string): Promise<
 
   document.documentElement.appendChild(host);
   document.documentElement.style.overflow = 'hidden';
-  document.addEventListener('keydown', onKeyDown, true);
+  // Window capture runs before the page's own shortcut handlers.
+  window.addEventListener('keydown', onKeyDown, true);
+  // Keep the page from reacting to input meant for the reader: its key
+  // shortcuts, and wheel/touch handlers that would block our scrolling.
+  for (const type of ['keydown', 'keyup', 'keypress', 'wheel', 'touchmove', 'mousedown', 'mouseup', 'click']) {
+    host.addEventListener(type, (e) => e.stopPropagation());
+  }
   scroller.focus({ preventScroll: true });
   window.addEventListener('pagehide', onPageHide);
 
@@ -118,7 +124,7 @@ export function closeOverlay(): void {
   refreshControls = null;
   focus = null;
   document.documentElement.style.overflow = savedOverflow;
-  document.removeEventListener('keydown', onKeyDown, true);
+  window.removeEventListener('keydown', onKeyDown, true);
   window.scrollTo(0, savedScrollY);
 }
 

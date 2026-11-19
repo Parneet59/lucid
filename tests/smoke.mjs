@@ -315,6 +315,44 @@ try {
   check(optErrors.length === 0 && optKey === 'sk-ant-test', `options page shows the saved key (${optErrors.join('; ')})`);
   await opts.close();
 
+  // --- Part 6: hostile pages ---
+  const page2 = await ctx.newPage();
+  const url2 = url + 'hostile.html';
+  await page2.goto(url2);
+  const sendTo = (pageUrl, msg) => sw.evaluate(async ([pageUrl, msg]) => {
+    const tab = (await chrome.tabs.query({})).find((t) => t.url === pageUrl);
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+    return chrome.tabs.sendMessage(tab.id, msg);
+  }, [pageUrl, msg]);
+  await page2.bringToFront();
+  const h1 = await sendTo(url2, { type: 'lucid:open', presetId: 'classic' });
+  check(h1.ok && h1.open, 'opens on a page with a fixed paywall overlay');
+  const styleLeak = await page2.evaluate(() => {
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    const p = root.querySelector('.lucid-body p:nth-of-type(2)') ?? root.querySelectorAll('.lucid-body p')[1];
+    const img = root.querySelector('.lucid-body img');
+    const cs = getComputedStyle(p);
+    return { color: cs.color, font: cs.fontFamily, size: cs.fontSize, img: img?.getAttribute('src'), imgDisplay: img && getComputedStyle(img).display };
+  });
+  check(styleLeak.color !== 'rgb(255, 0, 0)' && !/Impact/.test(styleLeak.font) && styleLeak.size === '20px', `page CSS doesn't leak into the reader (${JSON.stringify(styleLeak)})`);
+  check(styleLeak.img === '/lazy.png' || /lazy\.png$/.test(styleLeak.img ?? ''), `lazy-loaded image gets its real src (${styleLeak.img})`);
+  await page2.mouse.move(640, 400);
+  await page2.mouse.wheel(0, 1500);
+  await page2.waitForTimeout(500);
+  const scrolled = await page2.evaluate(() => document.getElementById('lucid-reader-host').shadowRoot.querySelector('.lucid-scroller').scrollTop);
+  check(scrolled > 500, `wheel scrolls the reader despite the page blocking wheel (${scrolled})`);
+  await page2.keyboard.press('a'); await page2.keyboard.press('m');
+  const pageKeys = await page2.evaluate(() => window.__pageKeys);
+  check(pageKeys.length === 0, `page shortcuts don't see keys typed in the reader (${JSON.stringify(pageKeys)})`);
+  await page2.keyboard.press('Escape');
+  await page2.close();
+
+  const page3 = await ctx.newPage();
+  await page3.goto(url + 'nonarticle.html');
+  const na = await sendTo(url + 'nonarticle.html', { type: 'lucid:open' });
+  check(!na.ok && /Couldn't find an article/.test(na.error) && !(await page3.$('#lucid-reader-host')), `non-article page gives a clear message (${na.error})`);
+  await page3.close();
+
   // Popup renders without errors.
   const popup = await ctx.newPage();
   const errors = [];

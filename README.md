@@ -71,5 +71,5 @@ Layout: `src/background` (service worker, shortcut), `src/content` (article extr
 2. Presets and typography: font, size, line height, width, theme; default preset; per-site rule
 3. Reading aids: dyslexia preset, word anchors (off by default), paragraph focus
 4. Navigation: article map, resume where you left off
-5. Explain selection with your own API key (Claude first, swappable) ← **this**
-6. Test pass on ~15 real sites
+5. Explain selection with your own API key (Claude first, swappable)
+6. Hardening and a real-site test list (`tests/SITES.md`) ← **this**
