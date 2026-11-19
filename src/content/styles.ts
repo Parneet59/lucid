@@ -40,7 +40,7 @@ export const READER_CSS = `
 .lucid-panel hr { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
 
 .lucid-article {
-  max-width: var(--lucid-width, 680px); margin: 0 auto; padding: 32px 20px 120px;
+  max-width: var(--lucid-width, 680px); margin: 0 auto; padding: 32px 20px 45vh;
   font-family: var(--lucid-font); font-size: var(--lucid-size, 20px); line-height: var(--lucid-lh, 1.6);
   letter-spacing: var(--lucid-ls, 0); word-spacing: var(--lucid-ws, 0);
 }
@@ -55,6 +55,32 @@ export const READER_CSS = `
 .lucid-body table { border-collapse: collapse; display: block; overflow-x: auto; font-size: 0.85em; }
 .lucid-body td, .lucid-body th { border: 1px solid var(--line); padding: 4px 8px; }
 .lucid-body a { color: var(--link); }
+
+/* Progress + article map */
+.lucid-progress { position: sticky; top: 45px; z-index: 2; height: 3px; background: var(--line); }
+.lucid-progress-fill { height: 100%; width: 0; background: var(--link); }
+.lucid-map {
+  position: fixed; top: 56px; right: 16px; z-index: 3; width: 280px; max-height: calc(100vh - 72px); overflow-y: auto;
+  padding: 10px 12px; background: var(--bg); color: var(--fg); border: 1px solid var(--line);
+  box-shadow: 0 6px 24px rgba(0,0,0,.18); font: 13px/1.35 system-ui, sans-serif;
+}
+.lucid-map[hidden] { display: none; }
+.lucid-map-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.lucid-map-pct { color: var(--muted); }
+.lucid-map ol { list-style: none; margin: 0; padding: 0; }
+.lucid-map button { all: unset; display: block; width: 100%; box-sizing: border-box; padding: 4px 6px; cursor: pointer; border-left: 3px solid transparent; }
+.lucid-map button:hover, .lucid-map button:focus-visible { background: var(--code); }
+.lucid-map li.on > button { border-left-color: var(--link); font-weight: 600; }
+.lucid-map-l3 button { padding-left: 18px; }
+.lucid-map-l4 button { padding-left: 30px; font-size: 12px; }
+
+/* Resume toast */
+.lucid-toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 4;
+  display: flex; gap: 10px; align-items: center; padding: 8px 12px;
+  background: var(--fg); color: var(--bg); font: 13px system-ui, sans-serif; box-shadow: 0 4px 16px rgba(0,0,0,.25);
+}
+.lucid-toast button { font: inherit; cursor: pointer; }
 
 /* Word anchors: wrapped once, styled only while on. */
 .lucid-anchor { font-weight: inherit; }
