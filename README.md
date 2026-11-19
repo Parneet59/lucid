@@ -23,12 +23,19 @@ After pulling new changes, run `npm run build` again and click the reload arrow 
 - **Esc** or **Close reader** returns to the page where you left it.
 - Lucid only runs on the tab you invoke it on. Browser pages (`chrome://`, the Web Store) are off-limits.
 
+### Reading aids (in the Aa panel, saved with presets)
+
+- **Word anchors** bold the first part of each word to guide your eye. Off by default; code blocks are left alone.
+- **Paragraph focus** dims everything except the paragraph at the reading line, a third of the way down. Scroll, or press **j** / **k** to step one paragraph at a time.
+- **Fonts:** Serif, Sans, Mono, Atkinson Hyperlegible and OpenDyslexic (both bundled, OFL licensed).
+
 ### Presets
 
 - **One click:** the popup lists your presets. Clicking one opens the reader with it, or restyles the reader if it's already open. The preset picker in the reader's top bar does the same.
 - **Tweak:** click **Aa** in the reader for font, size, line height, width, letter and word spacing, and theme. Changes show live and apply to this page only until you save.
 - **Save:** **Save as new** stores your tweaks as a preset. **Update** overwrites one of your own presets (built-ins stay fixed). **Make default** sets the preset every site opens with.
 - **Per site:** tick **Always use … on this site** in the Aa panel, or pick a preset under the site's name in the popup.
+- **Built-ins:** Classic, Night, Compact, Dyslexia (OpenDyslexic, wider spacing, warm background), Focus (Atkinson Hyperlegible with paragraph focus on), Large print.
 - **Auto-open:** in the popup, tick **Open reader automatically** for a site. Chrome asks for permission to run on that site only.
 
 ## Develop
@@ -45,8 +52,8 @@ Layout: `src/background` (service worker, shortcut), `src/content` (article extr
 ## Roadmap for the test version
 
 1. Skeleton: reader view from the icon, bare popup
-2. Presets and typography: font, size, line height, width, theme; default preset; per-site rule ← **this**
-3. Reading aids: dyslexia preset, word anchors (off by default), paragraph focus
+2. Presets and typography: font, size, line height, width, theme; default preset; per-site rule
+3. Reading aids: dyslexia preset, word anchors (off by default), paragraph focus ← **this**
 4. Navigation: article map, resume where you left off
 5. Explain selection with your own API key (Claude first, swappable)
 6. Test pass on ~15 real sites

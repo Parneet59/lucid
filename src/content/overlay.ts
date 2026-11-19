@@ -1,6 +1,8 @@
 import type { Article } from './extract';
 import { READER_CSS } from './styles';
 import { buildControls, typographyVars, type ControlsState } from './controls';
+import { addWordAnchors, ParagraphFocus } from './aids';
+import { ensureFonts } from './fonts';
 import { loadSettings, onSettingsChanged, presetById, presetForHost, type Typography } from '../shared/settings';
 
 const HOST_ID = 'lucid-reader-host';
@@ -11,6 +13,7 @@ let refreshControls: (() => void) | null = null;
 let savedOverflow = '';
 let savedScrollY = 0;
 let listening = false;
+let focus: ParagraphFocus | null = null;
 
 export function isOpen(): boolean {
   return host !== null && host.isConnected;
@@ -36,17 +39,17 @@ export async function openOverlay(article: Article, presetId?: string): Promise<
   scroller.className = 'lucid-scroller';
   scroller.tabIndex = -1;
 
-  const apply = (t: Typography) => {
-    scroller.setAttribute('style', typographyVars(t));
-    scroller.dataset.theme = t.theme;
-  };
-  apply(state.typography);
+  ensureFonts();
+  const articleEl = renderArticle(article);
+  const body = articleEl.querySelector('.lucid-body') as HTMLElement;
+  focus = new ParagraphFocus(scroller, body);
 
-  const { bar, panel, refresh } = buildControls(state, apply, closeOverlay);
+  const { bar, panel, refresh } = buildControls(state, (t) => applyStyle(scroller, body, t), closeOverlay);
   refreshControls = refresh;
 
-  scroller.append(bar, panel, renderArticle(article));
+  scroller.append(bar, panel, articleEl);
   root.appendChild(scroller);
+  applyStyle(scroller, body, state.typography);
 
   document.documentElement.appendChild(host);
   document.documentElement.style.overflow = 'hidden';
@@ -72,8 +75,7 @@ export function applyPreset(presetId: string): boolean {
   state.presetId = p.id;
   state.typography = { ...p.typography };
   const scroller = host!.shadowRoot!.querySelector('.lucid-scroller') as HTMLElement;
-  scroller.setAttribute('style', typographyVars(state.typography));
-  scroller.dataset.theme = state.typography.theme;
+  applyStyle(scroller, scroller.querySelector('.lucid-body') as HTMLElement, state.typography);
   refreshControls?.();
   return true;
 }
@@ -88,6 +90,7 @@ export function closeOverlay(): void {
   host = null;
   state = null;
   refreshControls = null;
+  focus = null;
   document.documentElement.style.overflow = savedOverflow;
   document.removeEventListener('keydown', onKeyDown, true);
   window.scrollTo(0, savedScrollY);
@@ -120,10 +123,28 @@ function renderArticle(article: Article): HTMLElement {
   return articleEl;
 }
 
+function applyStyle(scroller: HTMLElement, body: HTMLElement, t: Typography): void {
+  scroller.setAttribute('style', typographyVars(t));
+  scroller.dataset.theme = t.theme;
+  if (t.anchors) addWordAnchors(body);
+  scroller.classList.toggle('lucid-anchors-on', t.anchors);
+  // Let layout settle so focus measures the restyled text.
+  requestAnimationFrame(() => focus?.setEnabled(t.focus));
+}
+
 function onKeyDown(e: KeyboardEvent): void {
   if (e.key === 'Escape') {
     e.stopPropagation();
     closeOverlay();
+    return;
+  }
+  // j / k step through paragraphs while paragraph focus is on.
+  const typing = (e.composedPath()[0] as HTMLElement)?.matches?.('input, textarea, select, [contenteditable]');
+  if (typing || e.ctrlKey || e.metaKey || e.altKey || !focus?.isEnabled()) return;
+  if (e.key === 'j' || e.key === 'k') {
+    e.preventDefault();
+    e.stopPropagation();
+    focus.step(e.key === 'j' ? 1 : -1);
   }
 }
 

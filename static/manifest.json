@@ -12,6 +12,9 @@
   },
   "permissions": ["activeTab", "scripting", "storage"],
   "optional_host_permissions": ["*://*/*"],
+  "web_accessible_resources": [
+    { "resources": ["fonts/*"], "matches": ["<all_urls>"] }
+  ],
   "commands": {
     "toggle-reader": {
       "suggested_key": { "default": "Alt+Shift+R" },

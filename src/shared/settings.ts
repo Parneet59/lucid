@@ -1,6 +1,6 @@
 // Presets, the default preset and per-site rules, all in chrome.storage.local.
 
-export type FontFamily = 'serif' | 'sans' | 'mono';
+export type FontFamily = 'serif' | 'sans' | 'mono' | 'hyperlegible' | 'dyslexic';
 export type Theme = 'light' | 'sepia' | 'dark';
 
 export interface Typography {
@@ -11,6 +11,8 @@ export interface Typography {
   theme: Theme;
   letterSpacing: number; // em
   wordSpacing: number;   // em
+  anchors: boolean;      // bold the start of each word (Bionic-style)
+  focus: boolean;        // dim everything but the paragraph being read
 }
 
 export interface Preset {
@@ -35,6 +37,8 @@ export const FONT_STACKS: Record<FontFamily, string> = {
   serif: "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
   sans: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
   mono: "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+  hyperlegible: "'Lucid Atkinson Hyperlegible', system-ui, sans-serif",
+  dyslexic: "'Lucid OpenDyslexic', 'Comic Sans MS', sans-serif",
 };
 
 export const LIMITS = {
@@ -47,13 +51,19 @@ export const LIMITS = {
 
 const base: Typography = {
   font: 'serif', fontSize: 20, lineHeight: 1.6, width: 680, theme: 'light',
-  letterSpacing: 0, wordSpacing: 0,
+  letterSpacing: 0, wordSpacing: 0, anchors: false, focus: false,
 };
 
 export const BUILT_IN_PRESETS: Preset[] = [
   { id: 'classic', name: 'Classic', builtIn: true, typography: { ...base } },
   { id: 'night', name: 'Night', builtIn: true, typography: { ...base, font: 'sans', fontSize: 19, lineHeight: 1.7, theme: 'dark' } },
   { id: 'compact', name: 'Compact', builtIn: true, typography: { ...base, font: 'sans', fontSize: 16, lineHeight: 1.45, width: 820 } },
+  {
+    id: 'dyslexia', name: 'Dyslexia', builtIn: true,
+    // Wider spacing, shorter lines, warm background, dyslexia-friendly font.
+    typography: { ...base, font: 'dyslexic', fontSize: 19, lineHeight: 1.9, width: 620, theme: 'sepia', letterSpacing: 0.02, wordSpacing: 0.12 },
+  },
+  { id: 'focus', name: 'Focus', builtIn: true, typography: { ...base, font: 'hyperlegible', fontSize: 21, lineHeight: 1.75, width: 640, focus: true } },
   { id: 'large', name: 'Large print', builtIn: true, typography: { ...base, fontSize: 26, lineHeight: 1.75, width: 760, theme: 'sepia' } },
 ];
 
