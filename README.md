@@ -23,6 +23,16 @@ After pulling new changes, run `npm run build` again and click the reload arrow 
 - **Esc** or **Close reader** returns to the page where you left it.
 - Lucid only runs on the tab you invoke it on. Browser pages (`chrome://`, the Web Store) are off-limits.
 
+### Explain selection (bring your own API key)
+
+1. Open Lucid **Options** (link at the bottom of the popup, or right-click the icon → Options).
+2. Paste an Anthropic API key from https://console.anthropic.com/settings/keys, pick a model (Claude Opus 5.5 by default; Sonnet 5.5 and Haiku 5.5 are cheaper), click **Test key**, then **Save**.
+3. In the reader, select a word, phrase or sentence and click **Explain** (or press **e**). The explanation streams into a small card; **Esc** closes it.
+
+The key lives in this browser's extension storage (unencrypted, not synced) and is sent only to Anthropic. Calls go straight from the extension to the API and are billed to your key. Each explanation sends the selection, its paragraph and the neighbouring ones, the article title and URL. If Claude declines a request, the API retries it on a fallback model automatically (server-side fallbacks).
+
+Providers are pluggable: see `src/background/providers/`.
+
 ### Navigation
 
 - **Map** (or **m**) opens the article map: every section heading, the one you're in highlighted, and how far through you are. Click a heading to jump.
@@ -53,13 +63,13 @@ After pulling new changes, run `npm run build` again and click the reload arrow 
 | `npm run typecheck` | TypeScript check |
 | `npm test` | Builds, then loads the extension in headless Chromium against a fixture article |
 
-Layout: `src/background` (service worker, shortcut), `src/content` (article extraction with Mozilla Readability, reader overlay in a shadow root, typography controls), `src/shared/settings.ts` (presets and site rules in `chrome.storage.local`), `src/popup`, `src/shared`, `static/` (manifest and HTML, copied as-is).
+Layout: `src/background` (service worker, shortcut), `src/content` (article extraction with Mozilla Readability, reader overlay in a shadow root, typography controls), `src/shared/settings.ts` (presets and site rules in `chrome.storage.local`), `src/popup`, `src/options`, `src/background/providers` (explain providers), `src/shared`, `static/` (manifest and HTML, copied as-is).
 
 ## Roadmap for the test version
 
 1. Skeleton: reader view from the icon, bare popup
 2. Presets and typography: font, size, line height, width, theme; default preset; per-site rule
 3. Reading aids: dyslexia preset, word anchors (off by default), paragraph focus
-4. Navigation: article map, resume where you left off ← **this**
-5. Explain selection with your own API key (Claude first, swappable)
+4. Navigation: article map, resume where you left off
+5. Explain selection with your own API key (Claude first, swappable) ← **this**
 6. Test pass on ~15 real sites

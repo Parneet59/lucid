@@ -136,3 +136,8 @@ autoOpen.addEventListener('change', async () => {
 });
 
 init();
+
+$<HTMLAnchorElement>('options').addEventListener('click', (e) => {
+  e.preventDefault();
+  chrome.runtime.openOptionsPage();
+});

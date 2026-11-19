@@ -5,6 +5,7 @@ import { addWordAnchors, ParagraphFocus } from './aids';
 import { ensureFonts } from './fonts';
 import { ArticleMap, ResumeTracker } from './nav';
 import { h } from './dom';
+import { Explainer } from './explain';
 import { loadSettings, onSettingsChanged, presetById, presetForHost, type Typography } from '../shared/settings';
 
 const HOST_ID = 'lucid-reader-host';
@@ -18,6 +19,7 @@ let listening = false;
 let focus: ParagraphFocus | null = null;
 let map: ArticleMap | null = null;
 let resume: ResumeTracker | null = null;
+let explainer: Explainer | null = null;
 
 export function isOpen(): boolean {
   return host !== null && host.isConnected;
@@ -65,6 +67,7 @@ export async function openOverlay(article: Article, presetId?: string): Promise<
   scroller.focus({ preventScroll: true });
   window.addEventListener('pagehide', onPageHide);
 
+  explainer = new Explainer(root, scroller, body, article.title);
   resume = new ResumeTracker(scroller, body);
   const r = resume;
   // Wait a frame so fonts/layout settle before measuring.
@@ -106,6 +109,8 @@ export function closeOverlay(): void {
   resume?.saveNow();
   resume = null;
   map = null;
+  explainer?.destroy();
+  explainer = null;
   window.removeEventListener('pagehide', onPageHide);
   host.remove();
   host = null;
@@ -173,12 +178,20 @@ function showResumeToast(scroller: HTMLElement, pct: number, r: ResumeTracker): 
 function onKeyDown(e: KeyboardEvent): void {
   if (e.key === 'Escape') {
     e.stopPropagation();
-    closeOverlay();
+    // Esc closes the innermost thing first.
+    if (explainer?.hasCard()) explainer.closeCard();
+    else closeOverlay();
     return;
   }
   // j / k step through paragraphs while paragraph focus is on.
   const typing = (e.composedPath()[0] as HTMLElement)?.matches?.('input, textarea, select, [contenteditable]');
   if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === 'e' && explainer?.hasSelection()) {
+    e.preventDefault();
+    e.stopPropagation();
+    explainer.explain();
+    return;
+  }
   if (e.key === 'm' && map) {
     e.preventDefault();
     e.stopPropagation();
