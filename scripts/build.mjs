@@ -12,7 +12,8 @@ cpSync('static', 'dist', { recursive: true });
 const options = {
   entryPoints: {
     background: 'src/background/index.ts',
-    content: 'src/content/index.ts',
+    content: 'src/content/entry.ts',
+    auto: 'src/content/auto.ts',
     popup: 'src/popup/index.ts',
   },
   outdir: 'dist',

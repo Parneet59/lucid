@@ -11,6 +11,7 @@
     "service_worker": "background.js"
   },
   "permissions": ["activeTab", "scripting", "storage"],
+  "optional_host_permissions": ["*://*/*"],
   "commands": {
     "toggle-reader": {
       "suggested_key": { "default": "Alt+Shift+R" },

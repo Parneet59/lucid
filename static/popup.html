@@ -4,17 +4,37 @@
   <meta charset="utf-8" />
   <title>Lucid</title>
   <style>
-    body { font: 14px system-ui, sans-serif; width: 240px; margin: 12px; }
-    button { width: 100%; padding: 8px; font: inherit; cursor: pointer; }
-    #status { margin-top: 8px; color: #555; min-height: 1.2em; }
-    .hint { color: #888; font-size: 12px; margin-top: 8px; }
+    body { font: 13px system-ui, sans-serif; width: 270px; margin: 12px; }
+    h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #777; margin: 14px 0 6px; }
+    button, select { font: inherit; }
+    #toggle { width: 100%; padding: 8px; cursor: pointer; }
+    #status { margin-top: 6px; color: #b00020; min-height: 1em; }
+    #presets { list-style: none; padding: 0; margin: 0; }
+    #presets button { width: 100%; text-align: left; padding: 5px 8px; margin: 2px 0; cursor: pointer; }
+    #presets button.on { font-weight: 700; outline: 2px solid #1a5fb4; }
+    #presets .tag { color: #888; font-weight: 400; float: right; }
+    label { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
+    select { flex: 1; }
+    .hint { color: #888; font-size: 12px; margin-top: 12px; }
+    #site-section[hidden] { display: none; }
   </style>
 </head>
 <body>
   <strong>Lucid</strong>
   <p><button id="toggle" type="button">Open reader</button></p>
   <div id="status"></div>
-  <div class="hint">Shortcut: Alt+Shift+R</div>
+
+  <h2>Presets</h2>
+  <ul id="presets"></ul>
+  <label>Default <select id="default-preset"></select></label>
+
+  <section id="site-section" hidden>
+    <h2 id="site-title">This site</h2>
+    <label>Preset <select id="site-preset"></select></label>
+    <label><input type="checkbox" id="auto-open" /> Open reader automatically</label>
+  </section>
+
+  <div class="hint">Shortcut: Alt+Shift+R. Edit presets with Aa inside the reader.</div>
   <script src="popup.js"></script>
 </body>
 </html>
