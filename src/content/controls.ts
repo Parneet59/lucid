@@ -17,6 +17,7 @@ export function buildControls(
   state: ControlsState,
   apply: (t: Typography) => void,
   onClose: () => void,
+  map: { toggle: () => void; isOpen: () => boolean },
 ): { bar: HTMLElement; panel: HTMLElement; refresh: () => void } {
   const bar = h('div', { class: 'lucid-bar' });
   const panel = h('div', { class: 'lucid-panel', hidden: true });
@@ -58,8 +59,12 @@ export function buildControls(
       'aria-expanded': String(!panel.hidden),
       onclick: () => { panel.hidden = !panel.hidden; refresh(); },
     }, 'Aa');
+    const mapBtn = h('button', {
+      type: 'button', class: 'lucid-map-btn', title: 'Article map (m)', 'aria-expanded': String(map.isOpen()),
+      onclick: () => { map.toggle(); refresh(); },
+    }, 'Map');
     const close = h('button', { type: 'button', class: 'lucid-close', onclick: onClose }, 'Close (Esc)');
-    return [select, aa, h('span', { class: 'lucid-spacer' }), close];
+    return [select, aa, mapBtn, h('span', { class: 'lucid-spacer' }), close];
   }
 
   function slider(label: string, key: 'fontSize' | 'lineHeight' | 'width' | 'letterSpacing' | 'wordSpacing', fmt: (v: number) => string): HTMLElement {

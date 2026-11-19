@@ -199,6 +199,61 @@ try {
   check(f2.focused > f1.focused, `j steps focus forward (${f1.focused} -> ${f2.focused})`);
   await page.screenshot({ path: 'test-results/reader-aids.png' });
 
+  // --- Part 4: article map + resume ---
+  await send({ type: 'lucid:close' });
+  await sw.evaluate(async () => {
+    const { settings } = await chrome.storage.local.get('settings');
+    settings.siteRules = {}; settings.defaultPresetId = 'classic';
+    await chrome.storage.local.set({ settings, positions: {} });
+  });
+  await send({ type: 'lucid:open' });
+  await page.keyboard.press('m');
+  const mapInfo = await shadow(() => {
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    const nav = root.querySelector('.lucid-map');
+    return { open: !nav.hidden, items: [...nav.querySelectorAll('li')].map((l) => l.textContent) };
+  });
+  check(mapInfo.open && mapInfo.items.includes('The problem') && mapInfo.items.includes('The fix'), `m opens article map (${mapInfo.items.join(' | ')})`);
+  await shadow(() => [...document.getElementById('lucid-reader-host').shadowRoot.querySelectorAll('.lucid-map button')].find((b) => b.textContent === 'The fix').click());
+  await page.waitForTimeout(900);
+  const jumped = await shadow(() => {
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    const fix = [...root.querySelectorAll('.lucid-body h2')].find((x) => x.textContent === 'The fix');
+    return {
+      top: Math.round(fix.getBoundingClientRect().top),
+      active: root.querySelector('.lucid-map li.on')?.textContent,
+      pct: root.querySelector('.lucid-map-pct').textContent,
+      bar: root.querySelector('.lucid-progress-fill').style.width,
+    };
+  });
+  check(jumped.top > 0 && jumped.top < 200 && jumped.active === 'The fix', `map jump scrolls to section and highlights it (${JSON.stringify(jumped)})`);
+  check(parseInt(jumped.bar) > 50, `progress bar tracks reading (${jumped.bar})`);
+  await page.screenshot({ path: 'test-results/reader-map.png' });
+
+  // Scroll to the middle, close, reopen: should resume there.
+  await shadow(() => {
+    const sc = document.getElementById('lucid-reader-host').shadowRoot.querySelector('.lucid-scroller');
+    sc.scrollTop = (sc.scrollHeight - sc.clientHeight) * 0.5;
+  });
+  await page.waitForTimeout(1200);
+  const before = await shadow(() => document.getElementById('lucid-reader-host').shadowRoot.querySelector('.lucid-scroller').scrollTop);
+  await send({ type: 'lucid:close' });
+  await page.waitForTimeout(200);
+  await send({ type: 'lucid:open' });
+  await page.waitForTimeout(400);
+  const after = await shadow(() => {
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    return { top: root.querySelector('.lucid-scroller').scrollTop, toast: root.querySelector('.lucid-toast')?.textContent ?? '' };
+  });
+  check(Math.abs(after.top - before) < 80 && /Resumed/.test(after.toast), `reopening resumes position (${Math.round(before)} -> ${Math.round(after.top)}, "${after.toast}")`);
+  await shadow(() => [...document.getElementById('lucid-reader-host').shadowRoot.querySelectorAll('.lucid-toast button')].find((b) => /top/.test(b.textContent)).click());
+  await page.waitForTimeout(300);
+  await send({ type: 'lucid:close' });
+  await send({ type: 'lucid:open' });
+  await page.waitForTimeout(400);
+  const fresh = await shadow(() => document.getElementById('lucid-reader-host').shadowRoot.querySelector('.lucid-scroller').scrollTop);
+  check(fresh < 5, `"Start from the top" forgets the position (${fresh})`);
+
   // Popup renders without errors.
   const popup = await ctx.newPage();
   const errors = [];

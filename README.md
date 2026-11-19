@@ -23,6 +23,12 @@ After pulling new changes, run `npm run build` again and click the reload arrow 
 - **Esc** or **Close reader** returns to the page where you left it.
 - Lucid only runs on the tab you invoke it on. Browser pages (`chrome://`, the Web Store) are off-limits.
 
+### Navigation
+
+- **Map** (or **m**) opens the article map: every section heading, the one you're in highlighted, and how far through you are. Click a heading to jump.
+- A thin progress bar under the top bar shows how far you've read.
+- **Resume:** Lucid remembers where you were in each article on this computer. Reopen it and you land back there, with a **Start from the top** option.
+
 ### Reading aids (in the Aa panel, saved with presets)
 
 - **Word anchors** bold the first part of each word to guide your eye. Off by default; code blocks are left alone.
@@ -53,7 +59,7 @@ Layout: `src/background` (service worker, shortcut), `src/content` (article extr
 
 1. Skeleton: reader view from the icon, bare popup
 2. Presets and typography: font, size, line height, width, theme; default preset; per-site rule
-3. Reading aids: dyslexia preset, word anchors (off by default), paragraph focus ← **this**
-4. Navigation: article map, resume where you left off
+3. Reading aids: dyslexia preset, word anchors (off by default), paragraph focus
+4. Navigation: article map, resume where you left off ← **this**
 5. Explain selection with your own API key (Claude first, swappable)
 6. Test pass on ~15 real sites

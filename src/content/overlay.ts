@@ -3,6 +3,8 @@ import { READER_CSS } from './styles';
 import { buildControls, typographyVars, type ControlsState } from './controls';
 import { addWordAnchors, ParagraphFocus } from './aids';
 import { ensureFonts } from './fonts';
+import { ArticleMap, ResumeTracker } from './nav';
+import { h } from './dom';
 import { loadSettings, onSettingsChanged, presetById, presetForHost, type Typography } from '../shared/settings';
 
 const HOST_ID = 'lucid-reader-host';
@@ -14,6 +16,8 @@ let savedOverflow = '';
 let savedScrollY = 0;
 let listening = false;
 let focus: ParagraphFocus | null = null;
+let map: ArticleMap | null = null;
+let resume: ResumeTracker | null = null;
 
 export function isOpen(): boolean {
   return host !== null && host.isConnected;
@@ -44,10 +48,14 @@ export async function openOverlay(article: Article, presetId?: string): Promise<
   const body = articleEl.querySelector('.lucid-body') as HTMLElement;
   focus = new ParagraphFocus(scroller, body);
 
-  const { bar, panel, refresh } = buildControls(state, (t) => applyStyle(scroller, body, t), closeOverlay);
+  map = new ArticleMap(scroller, body, article.title);
+  const m = map;
+  const { bar, panel, refresh } = buildControls(state, (t) => applyStyle(scroller, body, t), closeOverlay, {
+    toggle: () => m.toggle(), isOpen: () => m.isOpen(),
+  });
   refreshControls = refresh;
 
-  scroller.append(bar, panel, articleEl);
+  scroller.append(bar, map.progress, panel, map.el, articleEl);
   root.appendChild(scroller);
   applyStyle(scroller, body, state.typography);
 
@@ -55,6 +63,15 @@ export async function openOverlay(article: Article, presetId?: string): Promise<
   document.documentElement.style.overflow = 'hidden';
   document.addEventListener('keydown', onKeyDown, true);
   scroller.focus({ preventScroll: true });
+  window.addEventListener('pagehide', onPageHide);
+
+  resume = new ResumeTracker(scroller, body);
+  const r = resume;
+  // Wait a frame so fonts/layout settle before measuring.
+  requestAnimationFrame(async () => {
+    const pct = await r.restore();
+    if (pct !== null && isOpen()) showResumeToast(scroller, pct, r);
+  });
 
   // Keep presets in sync if they change elsewhere (popup, another tab).
   if (!listening) {
@@ -86,6 +103,10 @@ export function currentPresetId(): string | undefined {
 
 export function closeOverlay(): void {
   if (!host) return;
+  resume?.saveNow();
+  resume = null;
+  map = null;
+  window.removeEventListener('pagehide', onPageHide);
   host.remove();
   host = null;
   state = null;
@@ -132,6 +153,23 @@ function applyStyle(scroller: HTMLElement, body: HTMLElement, t: Typography): vo
   requestAnimationFrame(() => focus?.setEnabled(t.focus));
 }
 
+function onPageHide(): void {
+  resume?.saveNow();
+}
+
+function showResumeToast(scroller: HTMLElement, pct: number, r: ResumeTracker): void {
+  const toast = h('div', { class: 'lucid-toast', role: 'status' },
+    h('span', {}, `Resumed where you left off (${pct}%).`),
+    h('button', {
+      type: 'button',
+      onclick: () => { scroller.scrollTo({ top: 0 }); void r.forget(); toast.remove(); },
+    }, 'Start from the top'),
+    h('button', { type: 'button', 'aria-label': 'Dismiss', onclick: () => toast.remove() }, '×'),
+  );
+  scroller.append(toast);
+  window.setTimeout(() => toast.remove(), 8000);
+}
+
 function onKeyDown(e: KeyboardEvent): void {
   if (e.key === 'Escape') {
     e.stopPropagation();
@@ -140,7 +178,15 @@ function onKeyDown(e: KeyboardEvent): void {
   }
   // j / k step through paragraphs while paragraph focus is on.
   const typing = (e.composedPath()[0] as HTMLElement)?.matches?.('input, textarea, select, [contenteditable]');
-  if (typing || e.ctrlKey || e.metaKey || e.altKey || !focus?.isEnabled()) return;
+  if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === 'm' && map) {
+    e.preventDefault();
+    e.stopPropagation();
+    map.toggle();
+    refreshControls?.();
+    return;
+  }
+  if (!focus?.isEnabled()) return;
   if (e.key === 'j' || e.key === 'k') {
     e.preventDefault();
     e.stopPropagation();
