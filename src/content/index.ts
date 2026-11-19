@@ -1,35 +1,45 @@
 import type { LucidRequest, LucidResponse } from '../shared/messages';
 import { extractArticle } from './extract';
-import { closeOverlay, isOpen, openOverlay } from './overlay';
+import { applyPreset, closeOverlay, currentPresetId, isOpen, openOverlay } from './overlay';
 
 declare global {
   interface Window { __lucidLoaded?: boolean }
 }
 
-// executeScript can run this file more than once per page; only wire up once.
-if (!window.__lucidLoaded) {
+// executeScript can run this more than once per page (and auto.js may have
+// loaded it already); only wire up once.
+export function install(): boolean {
+  if (window.__lucidLoaded) return false;
   window.__lucidLoaded = true;
   chrome.runtime.onMessage.addListener((req: LucidRequest, _sender, sendResponse) => {
-    sendResponse(handle(req));
+    handle(req).then(sendResponse);
+    return true; // async response
   });
+  return true;
 }
 
-function handle(req: LucidRequest): LucidResponse {
+const status = (): LucidResponse => ({ ok: true, open: isOpen(), presetId: currentPresetId(), host: location.hostname });
+
+async function handle(req: LucidRequest): Promise<LucidResponse> {
   try {
     switch (req.type) {
       case 'lucid:status':
-        return { ok: true, open: isOpen() };
+        return status();
       case 'lucid:close':
         closeOverlay();
-        return { ok: true, open: false };
+        return status();
       case 'lucid:open':
-        return open();
+        return open(req.presetId);
       case 'lucid:toggle':
         if (isOpen()) {
           closeOverlay();
-          return { ok: true, open: false };
+          return status();
         }
-        return open();
+        return open(req.presetId);
+      case 'lucid:applyPreset':
+        if (isOpen()) applyPreset(req.presetId);
+        else return open(req.presetId);
+        return status();
     }
   } catch (err) {
     console.error('[Lucid]', err);
@@ -37,10 +47,10 @@ function handle(req: LucidRequest): LucidResponse {
   }
 }
 
-function open(): LucidResponse {
-  if (isOpen()) return { ok: true, open: true };
+export async function open(presetId?: string): Promise<LucidResponse> {
+  if (isOpen()) return status();
   const article = extractArticle();
   if (!article) return { ok: false, error: "Couldn't find an article on this page." };
-  openOverlay(article);
-  return { ok: true, open: true };
+  await openOverlay(article, presetId);
+  return status();
 }

@@ -69,6 +69,86 @@ try {
   const r3 = await toggle();
   check(r2.open && r3.ok && !r3.open, 'toggle twice opens then closes (no double injection)');
 
+  // --- Part 2: presets and typography ---
+  const send = (msg) => sw.evaluate(async ([pageUrl, msg]) => {
+    const tab = (await chrome.tabs.query({})).find((t) => t.url === pageUrl);
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+    return chrome.tabs.sendMessage(tab.id, msg);
+  }, [url, msg]);
+  const shadow = (fn) => page.evaluate(fn);
+  const readerVars = () => shadow(() => {
+    const sc = document.getElementById('lucid-reader-host')?.shadowRoot?.querySelector('.lucid-scroller');
+    return sc ? { style: sc.getAttribute('style'), theme: sc.dataset.theme } : null;
+  });
+
+  const a1 = await send({ type: 'lucid:applyPreset', presetId: 'night' });
+  let v = await readerVars();
+  check(a1.ok && a1.open && a1.presetId === 'night' && v?.theme === 'dark', 'one-click preset opens reader with Night (dark)');
+  await send({ type: 'lucid:applyPreset', presetId: 'large' });
+  v = await readerVars();
+  check(v?.style.includes('--lucid-size: 26px') && v.theme === 'sepia', 'switching preset restyles live');
+
+  // Open the Aa panel, change size, save as a new preset.
+  await shadow(() => {
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    root.querySelector('.lucid-aa').click();
+    const r = root.querySelector('input[data-key="fontSize"]');
+    r.value = '31'; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change'));
+  });
+  v = await readerVars();
+  const label = await shadow(() => document.getElementById('lucid-reader-host').shadowRoot.querySelector('.lucid-preset option:checked').textContent);
+  check(v.style.includes('--lucid-size: 31px') && label.includes('(modified)'), `slider changes size and marks preset modified (${label})`);
+  await shadow(() => {
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    root.querySelector('.lucid-name').value = 'Test preset';
+    [...root.querySelectorAll('button')].find((b) => b.textContent === 'Save as new').click();
+  });
+  await page.waitForTimeout(200);
+  const stored = await sw.evaluate(async () => (await chrome.storage.local.get('settings')).settings);
+  const mine = stored?.presets.find((p) => p.name === 'Test preset');
+  check(mine?.typography.fontSize === 31, 'Save as new stores the preset');
+
+  // Site rule: tick "Always use on this site", reopen and expect it.
+  await shadow(() => {
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    root.querySelector('.lucid-check input').click();
+  });
+  await page.waitForTimeout(200);
+  await send({ type: 'lucid:close' });
+  const reopened = await send({ type: 'lucid:open' });
+  check(reopened.presetId === mine.id, 'per-site rule picks the saved preset on reopen');
+  await send({ type: 'lucid:close' });
+
+  // Default preset applies on sites without a rule.
+  await sw.evaluate(async (id) => {
+    const { settings } = await chrome.storage.local.get('settings');
+    settings.siteRules = {}; settings.defaultPresetId = 'compact';
+    await chrome.storage.local.set({ settings });
+  });
+  const def = await send({ type: 'lucid:open' });
+  check(def.presetId === 'compact', 'default preset used when no site rule');
+  await send({ type: 'lucid:close' });
+
+  // Auto-open: rule + permission registers auto.js; a reload opens the reader.
+  await sw.evaluate(async () => {
+    const { settings } = await chrome.storage.local.get('settings');
+    settings.siteRules = { localhost: { autoOpen: true } };
+    await chrome.storage.local.set({ settings });
+  });
+  await page.waitForTimeout(300);
+  await page.reload();
+  const auto = await page.waitForSelector('#lucid-reader-host', { timeout: 3000 }).then(() => true, () => false);
+  check(auto, 'auto-open opens the reader on page load');
+  await page.screenshot({ path: 'test-results/reader-panel.png' });
+
+  // Popup renders without errors.
+  const popup = await ctx.newPage();
+  const errors = [];
+  popup.on('pageerror', (e) => errors.push(e.message));
+  await popup.goto(`chrome-extension://${new URL(sw.url()).host}/popup.html`);
+  await popup.waitForTimeout(300);
+  const items = await popup.$$eval('#presets li', (els) => els.length);
+  check(errors.length === 0 && items >= 5, `popup lists presets (${items}) with no errors ${errors.join('; ')}`);
 } finally {
   await ctx.close();
   server.close();

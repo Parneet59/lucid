@@ -2,27 +2,56 @@
 export const READER_CSS = `
 :host { all: initial; }
 .lucid-scroller {
+  --bg: #fbfaf7; --fg: #1d1d1f; --muted: #6b6b6b; --line: #e5e2da; --link: #1a5fb4; --code: #f0eee8;
   position: fixed; inset: 0; overflow-y: auto; outline: none;
-  background: #fbfaf7; color: #1d1d1f;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 20px; line-height: 1.6;
+  background: var(--bg); color: var(--fg);
 }
+.lucid-scroller[data-theme="sepia"] { --bg: #f4ecd8; --fg: #3b2f1e; --muted: #7a6a52; --line: #e0d3b5; --link: #8a4b0f; --code: #ebe0c6; }
+.lucid-scroller[data-theme="dark"]  { --bg: #18191b; --fg: #dcdcdc; --muted: #9a9a9a; --line: #2e3033; --link: #8ab4f8; --code: #25272a; }
+
 .lucid-bar {
-  position: sticky; top: 0; display: flex; justify-content: flex-end;
-  padding: 8px 16px; background: inherit; border-bottom: 1px solid #e5e2da;
-  font-family: system-ui, sans-serif; font-size: 14px;
+  position: sticky; top: 0; z-index: 2; display: flex; gap: 8px; align-items: center;
+  padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--line);
+  font: 14px system-ui, sans-serif; color: var(--fg);
 }
-.lucid-close { font: inherit; padding: 4px 10px; cursor: pointer; }
-.lucid-article { max-width: 680px; margin: 0 auto; padding: 32px 20px 120px; }
+.lucid-spacer { flex: 1; }
+.lucid-bar button, .lucid-bar select, .lucid-panel button, .lucid-panel input[type=text] {
+  font: inherit; padding: 4px 10px; cursor: pointer;
+}
+.lucid-panel {
+  position: fixed; top: 48px; left: 16px; z-index: 3; width: 340px; max-height: calc(100vh - 64px); overflow-y: auto;
+  padding: 12px 14px; background: var(--bg); color: var(--fg); border: 1px solid var(--line);
+  box-shadow: 0 6px 24px rgba(0,0,0,.18); font: 13px system-ui, sans-serif;
+}
+.lucid-panel[hidden] { display: none; }
+.lucid-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.lucid-row > span:first-child { width: 96px; flex: none; }
+.lucid-row input[type=range] { flex: 1; }
+.lucid-row output { width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
+.lucid-choices { display: flex; gap: 4px; }
+.lucid-choices button.on { font-weight: 700; outline: 2px solid var(--link); }
+.lucid-actions { flex-wrap: wrap; }
+.lucid-actions .lucid-name { flex: 1; min-width: 0; }
+.lucid-check > span:first-child { width: auto; }
+.lucid-check { cursor: pointer; }
+.lucid-note { color: var(--muted); margin: 8px 0 0; }
+.lucid-danger { color: #b00020; }
+.lucid-panel hr { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
+
+.lucid-article {
+  max-width: var(--lucid-width, 680px); margin: 0 auto; padding: 32px 20px 120px;
+  font-family: var(--lucid-font); font-size: var(--lucid-size, 20px); line-height: var(--lucid-lh, 1.6);
+  letter-spacing: var(--lucid-ls, 0); word-spacing: var(--lucid-ws, 0);
+}
 .lucid-title { font-size: 2em; line-height: 1.2; margin: 0 0 8px; }
-.lucid-meta { color: #6b6b6b; font-size: 0.8em; margin: 0 0 32px; font-family: system-ui, sans-serif; }
+.lucid-meta { color: var(--muted); font-size: 0.8em; margin: 0 0 32px; font-family: system-ui, sans-serif; }
 .lucid-body img, .lucid-body video, .lucid-body svg, .lucid-body iframe { max-width: 100%; height: auto; }
 .lucid-body figure { margin: 1.5em 0; }
-.lucid-body figcaption { font-size: 0.8em; color: #6b6b6b; }
-.lucid-body pre { overflow-x: auto; font-size: 0.8em; background: #f0eee8; padding: 12px; }
+.lucid-body figcaption { font-size: 0.8em; color: var(--muted); }
+.lucid-body pre { overflow-x: auto; font-size: 0.8em; background: var(--code); padding: 12px; line-height: 1.45; }
 .lucid-body code { font-size: 0.9em; }
-.lucid-body blockquote { margin: 1em 0; padding-left: 1em; border-left: 3px solid #d8d4c8; color: #444; }
+.lucid-body blockquote { margin: 1em 0; padding-left: 1em; border-left: 3px solid var(--line); color: var(--muted); }
 .lucid-body table { border-collapse: collapse; display: block; overflow-x: auto; font-size: 0.85em; }
-.lucid-body td, .lucid-body th { border: 1px solid #ddd; padding: 4px 8px; }
-.lucid-body a { color: #1a5fb4; }
+.lucid-body td, .lucid-body th { border: 1px solid var(--line); padding: 4px 8px; }
+.lucid-body a { color: var(--link); }
 `;
