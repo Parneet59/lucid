@@ -75,7 +75,7 @@ try {
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
     return chrome.tabs.sendMessage(tab.id, msg);
   }, [url, msg]);
-  const shadow = (fn) => page.evaluate(fn);
+  const shadow = (fn, arg) => page.evaluate(fn, arg);
   const readerVars = () => shadow(() => {
     const sc = document.getElementById('lucid-reader-host')?.shadowRoot?.querySelector('.lucid-scroller');
     return sc ? { style: sc.getAttribute('style'), theme: sc.dataset.theme } : null;
@@ -111,7 +111,7 @@ try {
   // Site rule: tick "Always use on this site", reopen and expect it.
   await shadow(() => {
     const root = document.getElementById('lucid-reader-host').shadowRoot;
-    root.querySelector('.lucid-check input').click();
+    root.querySelector('.lucid-site-rule').click();
   });
   await page.waitForTimeout(200);
   await send({ type: 'lucid:close' });
@@ -140,6 +140,64 @@ try {
   const auto = await page.waitForSelector('#lucid-reader-host', { timeout: 3000 }).then(() => true, () => false);
   check(auto, 'auto-open opens the reader on page load');
   await page.screenshot({ path: 'test-results/reader-panel.png' });
+
+  // --- Part 3: reading aids ---
+  await send({ type: 'lucid:close' });
+  await page.waitForTimeout(100);
+  const dys = await send({ type: 'lucid:applyPreset', presetId: 'dyslexia' });
+  const fontOk = await page.evaluate(async () => {
+    await document.fonts.ready;
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    const fam = getComputedStyle(root.querySelector('.lucid-article')).fontFamily;
+    await document.fonts.load("16px 'Lucid OpenDyslexic'");
+    return { fam, loaded: document.fonts.check("16px 'Lucid OpenDyslexic'") };
+  });
+  check(dys.presetId === 'dyslexia' && fontOk.fam.includes('OpenDyslexic') && fontOk.loaded, `dyslexia preset loads OpenDyslexic (${JSON.stringify(fontOk)})`);
+
+  const setAid = (key, on) => shadow(([key, on]) => {
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    const panel = root.querySelector('.lucid-panel');
+    if (panel.hidden) root.querySelector('.lucid-aa').click();
+    const box = root.querySelector(`input[data-key="${key}"]`);
+    if (box.checked !== on) box.click();
+  }, [key, on]);
+
+  const anchorsBefore = await shadow(() => document.getElementById('lucid-reader-host').shadowRoot.querySelectorAll('.lucid-anchor').length);
+  await setAid('anchors', true);
+  const anchors = await shadow(() => {
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    const first = root.querySelector('.lucid-body p .lucid-anchor');
+    return {
+      count: root.querySelectorAll('.lucid-anchor').length,
+      inCode: root.querySelectorAll('pre .lucid-anchor').length,
+      weight: getComputedStyle(first).fontWeight,
+      first: first.textContent + first.nextSibling.textContent,
+      text: root.querySelector('.lucid-body p').textContent.slice(0, 30),
+    };
+  });
+  check(anchorsBefore === 0 && anchors.count > 100 && anchors.inCode === 0 && anchors.weight === '700', `word anchors bold word starts, skip code (${JSON.stringify(anchors)})`);
+  check(anchors.text.startsWith('Paragraph 1. Reading on the'), 'anchors keep the text intact');
+  await setAid('anchors', false);
+  const offWeight = await shadow(() => getComputedStyle(document.getElementById('lucid-reader-host').shadowRoot.querySelector('.lucid-body p .lucid-anchor')).fontWeight);
+  check(offWeight === '400', 'anchors off un-bolds');
+
+  await setAid('focus', true);
+  await page.waitForTimeout(100);
+  const focusState = () => shadow(() => {
+    const root = document.getElementById('lucid-reader-host').shadowRoot;
+    const blocks = [...root.querySelectorAll('.lucid-block')];
+    const f = root.querySelector('.lucid-focused');
+    return { blocks: blocks.length, focused: blocks.indexOf(f), dim: getComputedStyle(blocks.find((b) => b !== f)).opacity, on: getComputedStyle(f).opacity };
+  });
+  const f1 = await focusState();
+  // close the panel so j/k reach the reader
+  await shadow(() => document.getElementById('lucid-reader-host').shadowRoot.querySelector('.lucid-aa').click());
+  await page.keyboard.press('j'); await page.keyboard.press('j'); await page.keyboard.press('j');
+  await page.waitForTimeout(700);
+  const f2 = await focusState();
+  check(f1.blocks > 12 && f1.focused >= 0 && Number(f1.dim) < 0.5 && f1.on === '1', `paragraph focus dims others (${JSON.stringify(f1)})`);
+  check(f2.focused > f1.focused, `j steps focus forward (${f1.focused} -> ${f2.focused})`);
+  await page.screenshot({ path: 'test-results/reader-aids.png' });
 
   // Popup renders without errors.
   const popup = await ctx.newPage();

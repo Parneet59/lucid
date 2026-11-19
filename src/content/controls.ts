@@ -90,6 +90,27 @@ export function buildControls(
     return h('div', { class: 'lucid-row' }, h('span', {}, label), group);
   }
 
+  function fontPicker(current: FontFamily): HTMLElement {
+    const fonts: [FontFamily, string][] = [
+      ['serif', 'Serif'], ['sans', 'Sans'], ['mono', 'Mono'], ['hyperlegible', 'Hyperlegible'], ['dyslexic', 'OpenDyslexic'],
+    ];
+    const sel = h('select', {
+      class: 'lucid-font', onchange: (e: Event) => setTypo({ font: (e.target as HTMLSelectElement).value as FontFamily }),
+    });
+    for (const [v, label] of fonts) sel.append(h('option', { value: v, selected: v === current }, label));
+    return h('label', { class: 'lucid-row' }, h('span', {}, 'Font'), sel);
+  }
+
+  function toggle(label: string, key: 'anchors' | 'focus', hint: string): HTMLElement {
+    return h('label', { class: 'lucid-row lucid-check', title: hint },
+      h('span', {}, label),
+      h('input', {
+        type: 'checkbox', checked: state.typography[key], 'data-key': key,
+        onchange: (e: Event) => setTypo({ [key]: (e.target as HTMLInputElement).checked }),
+      }),
+    );
+  }
+
   function panelContents(): Node[] {
     const t = state.typography;
     const p = preset();
@@ -98,13 +119,15 @@ export function buildControls(
     const usesForSite = siteRule?.presetId === state.presetId;
 
     return [
-      choice<FontFamily>('Font', t.font, [['serif', 'Serif'], ['sans', 'Sans'], ['mono', 'Mono']], (font) => setTypo({ font })),
+      fontPicker(t.font),
       slider('Size', 'fontSize', (v) => `${v}px`),
       slider('Line height', 'lineHeight', (v) => v.toFixed(1)),
       slider('Width', 'width', (v) => `${v}px`),
       slider('Letter spacing', 'letterSpacing', (v) => v.toFixed(2)),
       slider('Word spacing', 'wordSpacing', (v) => v.toFixed(2)),
       choice<Theme>('Theme', t.theme, [['light', 'Light'], ['sepia', 'Sepia'], ['dark', 'Dark']], (theme) => setTypo({ theme })),
+      toggle('Word anchors', 'anchors', 'Bolds the start of each word to guide your eye.'),
+      toggle('Paragraph focus', 'focus', 'Dims everything except the paragraph you’re reading. j / k to step.'),
       h('hr'),
       h('div', { class: 'lucid-row lucid-actions' },
         h('button', {
@@ -158,7 +181,7 @@ export function buildControls(
       ),
       h('label', { class: 'lucid-row lucid-check' },
         h('input', {
-          type: 'checkbox', checked: usesForSite,
+          type: 'checkbox', class: 'lucid-site-rule', checked: usesForSite,
           onchange: async (e: Event) => {
             const on = (e.target as HTMLInputElement).checked;
             state.settings = await updateSettings((s) => {

@@ -32,7 +32,8 @@ export const READER_CSS = `
 .lucid-choices button.on { font-weight: 700; outline: 2px solid var(--link); }
 .lucid-actions { flex-wrap: wrap; }
 .lucid-actions .lucid-name { flex: 1; min-width: 0; }
-.lucid-check > span:first-child { width: auto; }
+.lucid-check > span:last-child { width: auto; }
+.lucid-row select { flex: 1; font: inherit; padding: 3px; }
 .lucid-check { cursor: pointer; }
 .lucid-note { color: var(--muted); margin: 8px 0 0; }
 .lucid-danger { color: #b00020; }
@@ -54,4 +55,12 @@ export const READER_CSS = `
 .lucid-body table { border-collapse: collapse; display: block; overflow-x: auto; font-size: 0.85em; }
 .lucid-body td, .lucid-body th { border: 1px solid var(--line); padding: 4px 8px; }
 .lucid-body a { color: var(--link); }
+
+/* Word anchors: wrapped once, styled only while on. */
+.lucid-anchor { font-weight: inherit; }
+.lucid-anchors-on .lucid-anchor { font-weight: 700; }
+
+/* Paragraph focus */
+.lucid-focus-on .lucid-block { opacity: .28; transition: opacity .18s ease; }
+.lucid-focus-on .lucid-block.lucid-focused { opacity: 1; }
 `;

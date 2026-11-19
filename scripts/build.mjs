@@ -9,6 +9,19 @@ rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist', { recursive: true });
 cpSync('static', 'dist', { recursive: true });
 
+// Reader fonts (OFL-1.1), served to pages as web-accessible resources.
+const FONTS = {
+  'atkinson-hyperlegible': ['latin-400-normal', 'latin-700-normal', 'latin-400-italic'],
+  opendyslexic: ['latin-400-normal', 'latin-700-normal', 'latin-400-italic'],
+};
+mkdirSync('dist/fonts', { recursive: true });
+for (const [pkg, variants] of Object.entries(FONTS)) {
+  for (const v of variants) {
+    const file = `${pkg}-${v}.woff2`;
+    cpSync(`node_modules/@fontsource/${pkg}/files/${file}`, `dist/fonts/${file}`);
+  }
+}
+
 const options = {
   entryPoints: {
     background: 'src/background/index.ts',
